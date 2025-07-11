@@ -20,27 +20,27 @@ class MRIDataset(Dataset):
         return len(self.training_list)
 
     def get_sequnence_frame(self, image_sequence_path, label_seqquence_path):
-        image = Image.open(image_sequence_path).convert('L')  # 'L' for grayscale
-        label = Image.open(label_seqquence_path).convert('L')  # Use 'RGB' if color labels
+        image = Image.open(image_sequence_path).convert('RGB')  # 'L' for grayscale
+        label = Image.open(label_seqquence_path).convert('RGB')  # Use 'RGB' if color labels
 
         # Convert to NumPy arrays
         image = np.array(image) / 255.0
-        label = np.array(label) 
+        label = np.array(label) / 255.0
         # crop to 64X64
         image = self.center_crop(image)
         label = self.center_crop(label)
 
-        image = torch.tensor(image, dtype=torch.float32).unsqueeze(0)
-        label = torch.tensor(label, dtype=torch.long).unsqueeze(0)
+        image = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1)
+        label = torch.tensor(label, dtype=torch.float32).permute(2, 0, 1)
         return image, label
 
     def center_crop(self, img_array, target_size=64):
-        h, w = img_array.shape
+        h, w, C = img_array.shape
         if h == w == target_size:
             return img_array  
         start_h = (h - target_size) // 2
         start_w = (w - target_size) // 2
-        return img_array[start_h:start_h + target_size, start_w:start_w + target_size]
+        return img_array[start_h:start_h + target_size, start_w:start_w + target_size, :]
     
     def __getitem__(self, idx):
         image_sequence_dir = os.path.join(self.data_folder,'b800', self.training_list[idx] + '_b800')
@@ -59,9 +59,9 @@ if __name__ == '__main__':
     train_sampler = SubsetRandomSampler(train_idx)
     eval_sampler = SubsetRandomSampler(eva_idx)
     train_loader = DataLoader(dataset, batch_size=16, num_workers=0, sampler=train_sampler)
-    eval_loader = DataLoader(dataset, batch_size=16, num_workers=0, sampler=eval_sampler)
-    print(len(train_loader))        
-    encoder = ImageEncoder()
-    for image, label in train_loader:
-        image_embedding = encoder(image)
-        print(len(image_embedding))
+    eval_loader = DataLoader(dataset, batch_size=16, num_workers=0, sampler=eval_sampler)    
+    print(len(train_loader))    
+    # encoder = ImageEncoder()
+    for image, label in eval_loader:
+        print(image.shape)
+        # plt.imsave('test.png', label[0].permute(1, 2, 0).numpy())

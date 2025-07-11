@@ -9,4 +9,5 @@ CUDA_VISIBLE_DEVICES=$DEVICES python3 main.py \
     --image_size 64 \
     --data_folder $DATA_FOLDER \
     --train_model $TRAIN_MODEL \
+    --in_channels 3 \
     # --nproc_per_node 4
