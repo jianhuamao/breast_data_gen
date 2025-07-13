@@ -12,3 +12,7 @@ class trainingConfig:
     data_folder: str = "data"
     nproc_per_node: int = 4
     in_channels: int = 3
+    num_sampler: int = 1100
+    num_train_timesteps: int = 1000
+    start_epoch: int = 0
+    pretrain_model_path: str = None

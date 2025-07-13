@@ -1,0 +1,38 @@
+'''
+train 1
+'''
+epoch 1,SSIM: 0.1350
+epoch 20,SSIM: 0.2786
+epoch 20,SSIM: 0.3026
+epoch 40,SSIM: 0.4028
+epoch 60,SSIM: 0.4301
+epoch 80,SSIM: 0.4083
+epoch 100,SSIM: 0.4277
+epoch 120,SSIM: 0.4099
+epoch 140,SSIM: 0.4030
+epoch 160,SSIM: 0.4096
+epoch 180,SSIM: 0.4223
+epoch 200,SSIM: 0.4163
+epoch 200,SSIM: 0.4269
+epoch 250,SSIM: 0.4142
+epoch 300,SSIM: 0.4135
+epoch 350,SSIM: 0.4100
+epoch 400,SSIM: 0.4103
+epoch 450,SSIM: 0.3995
+epoch 500,SSIM: 0.3997
+
+'''
+train 2
+'''
+epoch 1,SSIM: 0.1297
+epoch 1,SSIM: 0.1205
+epoch 50,SSIM: 0.3869
+epoch 100,SSIM: 0.3970
+epoch 150,SSIM: 0.3978
+epoch 200,SSIM: 0.3907
+epoch 250,SSIM: 0.4052
+epoch 300,SSIM: 0.3957
+epoch 350,SSIM: 0.3981
+epoch 400,SSIM: 0.4011
+epoch 450,SSIM: 0.4054
+epoch 500,SSIM: 0.4057

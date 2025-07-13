@@ -1,0 +1,49 @@
+'''
+train 1
+'''
+epoch 0, MSE: 0.0713
+epoch 20, MSE: 0.1154
+epoch 40, MSE: 0.1249
+epoch 60, MSE: 0.1283
+epoch 80, MSE: 0.1351
+epoch 100, MSE: 0.1433
+epoch 120, MSE: 0.1488
+epoch 140, MSE: 0.1549
+epoch 160, MSE: 0.1602
+epoch 180, MSE: 0.1601
+epoch 1, MSE: 0.3514
+epoch 20, MSE: 0.0992
+epoch 20, MSE: 0.0867
+epoch 40, MSE: 0.0970
+epoch 60, MSE: 0.0983
+epoch 80, MSE: 0.1042
+epoch 100, MSE: 0.1054
+epoch 120, MSE: 0.1089
+epoch 140, MSE: 0.1111
+epoch 160, MSE: 0.1175
+epoch 180, MSE: 0.1166
+epoch 200, MSE: 0.1191
+epoch 200, MSE: 0.1017
+epoch 250, MSE: 0.1205
+epoch 300, MSE: 0.1250
+epoch 350, MSE: 0.1367
+epoch 400, MSE: 0.1300
+epoch 450, MSE: 0.1354
+epoch 500, MSE: 0.1383
+
+
+'''
+train 2
+'''
+epoch 1, MSE: 0.0817
+epoch 1, MSE: 0.0843
+epoch 50, MSE: 0.1265
+epoch 100, MSE: 0.1267
+epoch 150, MSE: 0.1430
+epoch 200, MSE: 0.1348
+epoch 250, MSE: 0.1343
+epoch 300, MSE: 0.1380
+epoch 350, MSE: 0.1374
+epoch 400, MSE: 0.1352
+epoch 450, MSE: 0.1334
+epoch 500, MSE: 0.1407

@@ -1,0 +1,37 @@
+'''
+train 1
+'''
+epoch 20,PSNR: 10.0360
+epoch 20,PSNR: 10.6192
+epoch 40,PSNR: 10.1325
+epoch 60,PSNR: 10.0750
+epoch 80,PSNR: 9.8215
+epoch 100,PSNR: 9.7719
+epoch 120,PSNR: 9.6297
+epoch 140,PSNR: 9.5427
+epoch 160,PSNR: 9.2996
+epoch 180,PSNR: 9.3333
+epoch 200,PSNR: 9.2396
+epoch 200,PSNR: 9.9263
+epoch 250,PSNR: 9.1902
+epoch 300,PSNR: 9.0313
+epoch 350,PSNR: 8.6417
+epoch 400,PSNR: 8.8590
+epoch 450,PSNR: 8.6836
+epoch 500,PSNR: 8.5904
+
+'''
+train 2
+'''
+epoch 1,PSNR: 10.8801
+epoch 1,PSNR: 10.7408
+epoch 50,PSNR: 8.9796
+epoch 100,PSNR: 8.9711
+epoch 150,PSNR: 8.4468
+epoch 200,PSNR: 8.7040
+epoch 250,PSNR: 8.7184
+epoch 300,PSNR: 8.6006
+epoch 350,PSNR: 8.6212
+epoch 400,PSNR: 8.6913
+epoch 450,PSNR: 8.7489
+epoch 500,PSNR: 8.5180
