@@ -17,7 +17,7 @@ def test():
     eval_dataloader = DataLoader(dataset, batch_size=200, num_workers=4, sampler=eval_sampler)
     unet = diffusers.UNet2DModel(
     sample_size=64,  # the target image resolution
-    in_channels=7,  # the number of input channels, 3 for RGB images
+    in_channels=6,  # the number of input channels, 3 for RGB images
     out_channels=3,  # the number of output channels
     layers_per_block=2,  # how many ResNet layers to use per UNet block
     block_out_channels=(128, 128, 256, 256, 512, 512),  # the number of output channes for each UNet block
@@ -42,7 +42,7 @@ def test():
     noise_scheduler = diffusers.DDIMScheduler(num_train_timesteps=1000)
     noise_scheduler.set_timesteps(50)
     Imagencoder = ImageEncoder()
-    evaluate(model=model, epoch=501, eval_dataloader=eval_dataloader, image_encoder=Imagencoder, noise_scheduler=noise_scheduler)
+    evaluate(model=model, epoch=500, eval_dataloader=eval_dataloader, image_encoder=Imagencoder, noise_scheduler=noise_scheduler)
 
 if __name__ == '__main__':
     test()

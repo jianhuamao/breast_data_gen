@@ -24,6 +24,7 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler):
     mae_log = train_log('mae')
     psnr_log = train_log('psnr')
     ssim_log = train_log('ssim')
+    num_idx = 1
     with torch.no_grad():
         for data in eval_dataloader:
             image = data['image'].to(device) 
@@ -46,15 +47,20 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler):
             ground_truth_np = gt.detach().cpu().squeeze().numpy()
             image_np = image.detach().cpu().squeeze().numpy()
             mask_np = data['mask'].detach().cpu().squeeze().numpy()
+            bs = generated_np.shape[0]
             # generated_np = np.clip((generated_np + 1) / 2, 0, 1)
-            if not os.path.exists(generate_path):
-                os.makedirs(generate_path)
-            if not os.path.exists(gt_path):
-                os.makedirs(gt_path)
-            plt.imsave(os.path.join(generate_path, 'generate.png'), np.transpose(generated_np[0],(1, 2, 0)))
-            plt.imsave(os.path.join(gt_path, 'gt.png'), np.transpose(ground_truth_np[0],(1, 2, 0)))
-            plt.imsave(os.path.join(gt_path, 'image.png'), np.transpose(image_np[0],(1, 2, 0)))
-            plt.imsave(os.path.join(gt_path, 'mask.png'), mask_np[0])
+            while num_idx <= 150:
+                for i in range(bs):
+                    path = os.path.join(generate_path, str(num_idx))
+                    if not os.path.exists(path):
+                        os.makedirs(path)   
+                    plt.imsave(os.path.join(path, 'generate.png'), np.transpose(generated_np[i],(1, 2, 0)))
+                    plt.imsave(os.path.join(path, 'gt.png'), np.transpose(ground_truth_np[i],(1, 2, 0)))
+                    plt.imsave(os.path.join(path, 'image.png'), np.transpose(image_np[i],(1, 2, 0)))
+                    plt.imsave(os.path.join(path, 'mask.png'), mask_np[0])
+                    num_idx += 1
+                    if num_idx > 150:
+                        break
         # 计算指标
         mse = np.mean((generated_np - ground_truth_np) ** 2)
         mae = np.mean(np.abs(generated_np - ground_truth_np))
