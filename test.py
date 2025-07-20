@@ -2,23 +2,36 @@ import os
 import numpy as np
 from PIL import Image, ImageOps
 import matplotlib.pylab as plt
-from lib.data.dataset import MRIDataset
+from lib.data.dataset import MRIDataset, transform
 from sklearn.model_selection import train_test_split
 from torch.utils.data import SubsetRandomSampler, DataLoader
 import diffusers
 from lib.utils.load_model import load_dict
 from eval import evaluate
 from lib.model.encoder import ImageEncoder
+import torch
+import swanlab
 def test():
-    dataset = MRIDataset('./data', "total_list.txt")
+    swanlab.init(
+    # 设置项目名
+    project="test",
+    
+    # 设置超参数
+    config={
+        "learning_rate": 1e-4,
+        "architecture": "unet",
+        "dataset": "t1c",
+        "epochs": 500
+    }
+    )
+    eval_transform = transform()
+    dataset = MRIDataset('./data', "total_list.txt", transforms=eval_transform)
     indices = range(dataset.__len__())
-    train_idx, eva_idx = train_test_split(indices, test_size=0.2, random_state=42)
-    eval_sampler = SubsetRandomSampler(eva_idx)
-    eval_dataloader = DataLoader(dataset, batch_size=200, num_workers=4, sampler=eval_sampler)
+    eval_dataloader = DataLoader(dataset, batch_size=12, num_workers=4)
     unet = diffusers.UNet2DModel(
     sample_size=64,  # the target image resolution
-    in_channels=6,  # the number of input channels, 3 for RGB images
-    out_channels=3,  # the number of output channels
+    in_channels=2,  # the number of input channels, 3 for RGB images
+    out_channels=1,  # the number of output channels
     layers_per_block=2,  # how many ResNet layers to use per UNet block
     block_out_channels=(128, 128, 256, 256, 512, 512),  # the number of output channes for each UNet block
     down_block_types=(
@@ -38,11 +51,13 @@ def test():
         "UpBlock2D"
         ),
     )
-    model = load_dict(unet, './ckp/epoch_499.pth')
+    optimizer = torch.optim.AdamW(unet.parameters(), lr=1e-4)
+    loaded_model = load_dict(unet, './ckpt/epoch_1.pth', optimizer=optimizer)
+    model = loaded_model['model']
     noise_scheduler = diffusers.DDIMScheduler(num_train_timesteps=1000)
     noise_scheduler.set_timesteps(50)
     Imagencoder = ImageEncoder()
-    evaluate(model=model, epoch=500, eval_dataloader=eval_dataloader, image_encoder=Imagencoder, noise_scheduler=noise_scheduler)
+    evaluate(model=model, epoch=1, eval_dataloader=eval_dataloader, image_encoder=Imagencoder, noise_scheduler=noise_scheduler, swanlab=swanlab)
 
 if __name__ == '__main__':
     test()
