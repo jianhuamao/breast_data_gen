@@ -6,7 +6,7 @@ class lr_convert():
         self.start_epoch = config.start_epoch
         self.num_epochs = config.num_epochs
         self.optimizer = optimizer
-        self.milestones = [20, 60, 90]
+        self.milestones = [10, 20, 40]
         self._sched_map = {
             '_warm_up'    : self._warm_up,
             '_plateau'    : self._plateau,     
@@ -15,7 +15,7 @@ class lr_convert():
             }
     def _warm_up(self):
         warmup = LinearLR(self.optimizer,
-                        start_factor=1e-5/self.lr,
+                        start_factor=1e-6/self.lr,
                         end_factor=1.0,
                         total_iters=20 - self.start_epoch)
         return warmup
@@ -30,12 +30,12 @@ class lr_convert():
         cosine = CosineAnnealingLR(
                         self.optimizer,
                         T_max=90 - max(self.start_epoch, 60),
-                        eta_min=1e-5)   
+                        eta_min=1e-6)   
         return cosine
     def _plateau_low(self):
         plateau_low = ConstantLR(
                         self.optimizer,
-                        factor=1e-5 / self.lr,  
+                        factor=1e-6 / self.lr,  
                         total_iters=self.num_epochs - max(self.start_epoch, 90)       
         )
         return plateau_low

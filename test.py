@@ -14,14 +14,14 @@ import swanlab
 def test():
     swanlab.init(
     # 设置项目名
-    project="test",
-    
+    project="outputDemo",
+    description='unet model with 1+1 channels input and 1 channel output, DDIM with 50 steps',    
     # 设置超参数
     config={
         "learning_rate": 1e-4,
         "architecture": "unet",
         "dataset": "t1c",
-        "epochs": 500
+        "epochs": 40
     }
     )
     eval_transform = transform()
@@ -52,7 +52,7 @@ def test():
         ),
     )
     optimizer = torch.optim.AdamW(unet.parameters(), lr=1e-4)
-    loaded_model = load_dict(unet, './ckpt/epoch_1.pth', optimizer=optimizer)
+    loaded_model = load_dict(unet, './ckpt/1channel_epoch_40.pth', optimizer=optimizer)
     model = loaded_model['model']
     noise_scheduler = diffusers.DDIMScheduler(num_train_timesteps=1000)
     noise_scheduler.set_timesteps(50)

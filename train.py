@@ -7,7 +7,7 @@ import torch.nn as nn
 from eval import evaluate
 from diffusers import StableDiffusionInpaintPipeline
 from lib.utils.load_model import load_dict
-
+import time
 def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_dataloader, eval_dataloader, swanlab, device='cuda'):
     # Prepare everything
     # There is no specific order to remember, you just need to unpack the
@@ -23,7 +23,7 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
         progress_bar.set_description(f"Epoch {epoch}")
         
         model.train()
-
+        train_time_0 = time.time()
         for data in train_dataloader:
             image = data['image'].to(device)
             gt = data['gt'].to(device)
@@ -49,8 +49,13 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
 
             progress_bar.update(1)
             global_step += 1
+        train_time_1 = time.time()
         current_lr = optimizer.param_groups[0]["lr"]
-        swanlab.log({'lr': current_lr})
+        swanlab.log({
+            'lr': current_lr,
+            'train_time': train_time_1 - train_time_0 
+                     })
+
         scheduler.step()
         # if epoch == 0:
         if (epoch+1) % 20 == 0 and epoch != 0:
@@ -63,4 +68,7 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
                 'epoch': epoch,
                 'loss': loss.item()
             }, f'./ckpt/epoch_{epoch+1}.pth')
+            eval_time_0 = time.time()
             evaluate(model, epoch+1, eval_dataloader, image_encoder, noise_scheduler, swanlab)
+            eval_time_1 = time.time()
+            swanlab.log({'eval_time': eval_time_1 - eval_time_0})

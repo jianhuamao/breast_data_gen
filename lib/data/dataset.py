@@ -110,13 +110,12 @@ class transform():
 if __name__ == '__main__':
     transform = transform()
     data_folder = './data'
-    dataset = MRIDataset(data_folder, "train_list.txt", transforms=transform)
-    indices = range(dataset.__len__())
-    train_idx, eva_idx = train_test_split(indices, test_size=0.2, random_state=42)
-    # train_sampler = SubsetRandomSampler(train_idx)
-    train_loader = DataLoader(dataset, batch_size=16, num_workers=4, shuffle=True)
-    train_len = len(train_loader)    
+    train_dataset = MRIDataset(data_folder, "train_list.txt", transforms=transform)
+    eval_dataset = MRIDataset(data_folder=data_folder, sequence_list_txt='eval_list.txt', transforms=transform)
+    train_loader = DataLoader(train_dataset, batch_size=16, num_workers=4, shuffle=True)
+    eval_loader = DataLoader(eval_dataset, batch_size=16, num_workers=4,shuffle=False)
+    train_len = len(eval_loader)  
+    print(train_len)  
     # encoder = ImageEncoder()
 
-    for data  in train_loader:
-        print(data['gt'].shape)
+    

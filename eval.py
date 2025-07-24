@@ -14,6 +14,13 @@ def is_path_exists(path_list:list):
      for path in path_list:
           if not os.path.exists(path):
                os.makedirs(path)
+def swanlab_img(swanlab, img_files, num_idx):
+    img_list = []
+    for img_file in img_files:
+        img = swanlab.Image(img_file, caption=f'{num_idx}')
+        img_list.append(img)
+    return img_list
+
 def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swanlab=None):
     noise_scheduler.set_timesteps(50) 
     device = torch.device("cuda:0")
@@ -34,7 +41,9 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swan
     psnr_log = train_log('psnr')
     ssim_log = train_log('ssim')
     num_idx = 1
-    num_loop = 150
+    num_loop = 100
+    if swanlab is not None:
+        gen_list, image_list, gt_list, mask_list = [],[],[],[]
     with torch.no_grad():
         for data in eval_dataloader:
             image = data['image'].to(device) 
@@ -58,25 +67,23 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swan
             mask_np = data['mask'].detach().cpu().squeeze().numpy()
             bs = generated_np.shape[0]
             # generated_np = np.clip((generated_np + 1) / 2, 0, 1)
-            if swanlab is not None:
-                gen_list, image_list, gt_list, mask_list = [],[],[],[]
-            while num_idx <= num_loop:
-                for i in range(bs):
-                    sub_path = path_gen(all_path, str(num_idx))
-                    is_path_exists(sub_path)
-                    gen_path, img_path, gt_path, mask_path = path_gen(sub_path, f'{i}.png')  
-                    plt.imsave(gen_path, generated_np[i], cmap = 'gray')
-                    plt.imsave(gt_path, ground_truth_np[i], cmap = 'gray')
-                    plt.imsave(img_path, image_np[i], cmap='gray')
-                    plt.imsave(mask_path, mask_np[i], cmap='gray')
-                    if swanlab is not None:
-                        gen_list.append(swanlab.Image(gen_path))
-                        image_list.append(swanlab.Image(img_path))
-                        gt_list.append(swanlab.Image(gt_path))
-                        mask_list.append(swanlab.Image(mask_path))
-                    num_idx += 1
-                    if num_idx > num_loop:
-                        break
+            if num_idx <= num_loop:
+                is_path_exists(all_path)
+                sub_path = path_gen(all_path, str(f'{num_idx}.png'))
+                gen_path, img_path, gt_path, mask_path = sub_path 
+                plt.imsave(gen_path, generated_np[0], cmap = 'gray')
+                plt.imsave(gt_path, ground_truth_np[0], cmap = 'gray')
+                plt.imsave(img_path, image_np[0], cmap='gray')
+                plt.imsave(mask_path, mask_np[0], cmap='gray')
+                if swanlab is not None:
+                    img_list = swanlab_img(swanlab=swanlab, img_files=sub_path, num_idx=num_idx)
+                    gen_list.append(img_list[0])
+                    image_list.append(img_list[1])
+                    gt_list.append(img_list[2])
+                    mask_list.append(img_list[3])
+                num_idx += 1
+            else:
+                break
             
         # 计算指标
         mse = np.mean((generated_np - ground_truth_np) ** 2)
