@@ -111,6 +111,20 @@ def expand_square_bounding_box(segmentation_image, target_size=64):
     expanded_box = start_point + [target_size, target_size, bounding_box[5]]
 
     return expanded_box
+
+def center_crop_box(image, target_size= 256):
+    label_statistics = sitk.LabelShapeStatisticsImageFilter()
+    label_statistics.Execute(image)
+    X, Y, _ = image.GetSize()
+    # 获取前景（标签为1）的包围盒
+    bounding_box = label_statistics.GetBoundingBox(1)
+    center_point = [X //2, Y//2]
+    len_size = target_size // 2
+    center_box = [center_point[0] - len_size, center_point[1] - len_size, bounding_box[2], target_size, target_size, bounding_box[5]]
+
+    return center_box
+    
+
 def crop_to_bounding_box(image, bounding_box):
     # 获取最小包围盒的起始点和尺寸
     start_point = bounding_box[:3]
@@ -157,10 +171,9 @@ def main():
         c_regis_image = resample_c_image
         c_regis_segment_image = resample_t1c_segment_image
 
-
-        # 获取最小方形包围盒（X、Y方形）
-        c_bounding_box= expand_square_bounding_box(c_regis_segment_image)
-        dwi_bounding_box = expand_square_bounding_box(resample_b800_segment_image)
+        c_bounding_box= center_crop_box(c_regis_segment_image)
+        dwi_bounding_box = center_crop_box(resample_b800_segment_image)
+        print(dwi_bounding_box)
         min_size = min(c_bounding_box[-1], dwi_bounding_box[-1])
         c_bounding_box[-1] = min_size
         dwi_bounding_box[-1] = min_size
