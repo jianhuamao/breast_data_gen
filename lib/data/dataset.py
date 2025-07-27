@@ -23,14 +23,16 @@ def collate_dict(batch):
 class MRIDataset(Dataset):
     def __init__(self, data_folder, sequence_list_txt, transforms=None):
         self.data_folder = data_folder
-        if 'train' in sequence_list_txt:
-            self.train_tf = transforms.train_transform
-            self.isTrain = True
-        else:
-            self.isTrain = False
-        self.image_norm = transforms.image_norm
-        self.gt_norm = transforms.gt_norm
-        self.mask_to_tensor = transforms.mask_to_tensor
+        self.transforms = transforms
+        if transforms is not None:
+            self.image_norm = transforms.image_norm
+            self.gt_norm = transforms.gt_norm
+            self.mask_to_tensor = transforms.mask_to_tensor
+            if 'train' in sequence_list_txt:
+                self.train_tf = transforms.train_transform
+                self.isTrain = True
+            else: 
+                self.isTrain = False
         self.image_path_list = []
         self.sequence_path = os.path.join(data_folder,sequence_list_txt)
         with open(self.sequence_path, 'r') as f:
@@ -45,27 +47,36 @@ class MRIDataset(Dataset):
         return len(self.image_path_list)
 
     def get_sequnence_frame(self, image_sequence_path, gt_seqquence_path, mask_sequence_path):
-        image = Image.open(image_sequence_path).convert('L')  # 'L' for grayscale
-        gt = Image.open(gt_seqquence_path).convert('L')  # Use 'RGB' if color labels
+        image = Image.open(image_sequence_path).convert('RGB')  
+        gt = Image.open(gt_seqquence_path).convert('RGB')  
         mask = Image.open(mask_sequence_path).convert('L').point(lambda p: 255 if p > 127 else 0, mode='L')
         # Convert to NumPy arrays
         image = np.array(image) / 255.0
         gt = np.array(gt) / 255.0
         mask = np.array(mask) / 255.0
-        
-        if self.isTrain:
-            aug = self.train_tf(image=image, gt=gt, mask=mask)
-            image = aug['image']
-            gt = aug['gt']
-            mask = aug['mask']
-        image = self.image_norm(image=image)
-        gt = self.gt_norm(image=gt)
-        mask = self.mask_to_tensor(image=mask)
-        return {
-            'image': image['image'],
-            'gt': gt['image'],
-            'mask': mask['image']
-        }
+        if self.transforms is not None:
+            if self.isTrain:
+                aug = self.train_tf(image=image, gt=gt, mask=mask)
+                image = aug['image']
+                gt = aug['gt']
+                mask = aug['mask']
+            image = self.image_norm(image=image)
+            gt = self.gt_norm(image=gt)
+            mask = self.mask_to_tensor(image=mask)
+            return {
+                'image': image['image'],
+                'gt': gt['image'],
+                'mask': mask['image']
+            }
+        else:
+            image = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1)
+            gt = torch.tensor(gt, dtype=torch.float32).permute(2, 0, 1)
+            mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
+            return {
+                'image': image,
+                'gt': gt,
+                'mask': mask
+            }
     def __get_seed__(self):
         return np.random.randint(2147483647)
     def center_crop(self, img_array, target_size=256):
@@ -93,9 +104,8 @@ class MRIDataset(Dataset):
 class transform():
     def __init__(self):
         self.train_transform = A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.Rotate(limit=15, p=0.5),
-            A.RandomCrop(height=256, width=256)
+            A.HorizontalFlip(p=0.25),
+            A.Rotate(limit=15, p=0.25)
         ], additional_targets={'gt': 'image', 'mask': 'mask'})
         self.image_norm = A.Compose([
             A.Normalize(mean=[0.0990], std=[0.1030], max_pixel_value=1.0),
@@ -112,10 +122,13 @@ if __name__ == '__main__':
     data_folder = './data'
     train_dataset = MRIDataset(data_folder, "train_list.txt", transforms=transform)
     eval_dataset = MRIDataset(data_folder=data_folder, sequence_list_txt='eval_list.txt', transforms=transform)
-    train_loader = DataLoader(train_dataset, batch_size=16, num_workers=4, shuffle=True)
-    eval_loader = DataLoader(eval_dataset, batch_size=16, num_workers=4,shuffle=False)
-    train_len = len(eval_loader)  
+    train_loader = DataLoader(train_dataset, batch_size=8, num_workers=4, shuffle=True)
+    eval_loader = DataLoader(eval_dataset, batch_size=8, num_workers=4,shuffle=False)
+    train_len = len(train_dataset)  
     print(train_len)  
     # encoder = ImageEncoder()
-
+    for data in train_loader:
+        print('image:',data['image'].shape)
+        print('gt',data['gt'].shape)
+        print('mask',data['mask'].shape)
     

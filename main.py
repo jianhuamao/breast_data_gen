@@ -17,6 +17,7 @@ import swanlab
 from lib.model.warm_up import lr_convert
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--name', type=str, default='train')
     parser.add_argument('--train_batch_size', type=int, default=1)
     parser.add_argument('--eval_batch_size', type=int, default=1)
     parser.add_argument('--image_size', type=int, default=64)
@@ -36,9 +37,10 @@ def parse_args():
 def main():
     args = parse_args()
     #GPU
-    device = torch.device("cuda")
+    device = torch.device("cuda:0")
     #loader config
     config = trainingConfig(
+        name = args.name,
         image_size=args.image_size,
         data_folder=args.data_folder,
         train_batch_size=args.train_batch_size,
@@ -65,7 +67,8 @@ def main():
     }
     )
     #load data
-    transforms = transform()
+    # transforms = transform()
+    transforms = None
     train_dataset = MRIDataset(config.data_folder, "train_list.txt", transforms=transforms)
     eval_dataset = MRIDataset(config.data_folder, 'eval_list.txt', transforms=transforms)
     # train_sampler = RandomSampler(train_dataset, replacement=True, num_samples=5000)
@@ -73,8 +76,8 @@ def main():
     eval_dataloader = DataLoader(eval_dataset, batch_size=config.eval_batch_size, num_workers=4, shuffle=False)
     unet = diffusers.UNet2DModel(
         sample_size=256,  # the target image resolution
-        in_channels=2,  # the number of input channels, 3 for RGB images
-        out_channels=1,  # the number of output channels
+        in_channels=6,  # the number of input channels, 3 for RGB images
+        out_channels=3,  # the number of output channels
         layers_per_block=2,  # how many ResNet layers to use per UNet block
         block_out_channels=(128, 128, 256, 256, 512, 512),  # the number of output channes for each UNet block
         down_block_types=(
@@ -105,7 +108,7 @@ def main():
     noise_scheduler = diffusers.DDIMScheduler(num_train_timesteps=1000)
     lr_c = lr_convert(config=config, optimizer=optimizer)
     scheduler = lr_c.get_schedulers()
-    train_loop(config, model, noise_scheduler, optimizer, scheduler, train_dataloader, eval_dataloader, swanlab)
+    train_loop(config, model, noise_scheduler, optimizer, scheduler, train_dataloader, eval_dataloader, swanlab, device=device)
 
         
 if __name__ == "__main__":

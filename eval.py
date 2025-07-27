@@ -21,12 +21,11 @@ def swanlab_img(swanlab, img_files, num_idx):
         img_list.append(img)
     return img_list
 
-def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swanlab=None):
+def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swanlab=None, device='cuda'):
     noise_scheduler.set_timesteps(50) 
-    device = torch.device("cuda:0")
     model = model.to(device)
     image_encoder = image_encoder.to(device).eval()
-    folder = "./output"
+    folder = "./output_without_transform"
     path_list = ['generate', 'image', 'gt', 'mask']
     path_list = [os.path.join(folder, name) for name in path_list]
     all_path = path_gen(path_list=path_list, add_name=f'epoch{epoch}')
@@ -41,7 +40,7 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swan
     psnr_log = train_log('psnr')
     ssim_log = train_log('ssim')
     num_idx = 1
-    num_loop = 100
+    num_loop = 64
     if swanlab is not None:
         gen_list, image_list, gt_list, mask_list = [],[],[],[]
     with torch.no_grad():
@@ -66,6 +65,10 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swan
             image_np = image.detach().cpu().squeeze().numpy()
             mask_np = data['mask'].detach().cpu().squeeze().numpy()
             bs = generated_np.shape[0]
+            if generated_np.shape[1] == 3: 
+                generated_np = generated_np.mean(axis=1)
+                ground_truth_np = ground_truth_np.mean(axis=1)
+                image_np = image_np.mean(axis=1)
             # generated_np = np.clip((generated_np + 1) / 2, 0, 1)
             if num_idx <= num_loop:
                 is_path_exists(all_path)

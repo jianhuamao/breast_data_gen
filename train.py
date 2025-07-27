@@ -14,7 +14,6 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
     # objects in the same order you gave them to the prepare method.
     criterition = torch.nn.MSELoss()
     global_step = 0
-    device = 'cuda:0'
     # Now you train the model
     start_epoch = config.start_epoch
     image_encoder = ImageEncoder().to(device)
@@ -67,8 +66,8 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
                 'scheduler_config': noise_scheduler.config,
                 'epoch': epoch,
                 'loss': loss.item()
-            }, f'./ckpt/epoch_{epoch+1}.pth')
+            }, f'./ckpt/{config.name}_epoch_{epoch+1}.pth')
             eval_time_0 = time.time()
-            evaluate(model, epoch+1, eval_dataloader, image_encoder, noise_scheduler, swanlab)
+            evaluate(model, epoch+1, eval_dataloader, image_encoder, noise_scheduler, swanlab, device=device)
             eval_time_1 = time.time()
             swanlab.log({'eval_time': eval_time_1 - eval_time_0})

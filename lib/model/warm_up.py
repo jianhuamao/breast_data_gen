@@ -17,26 +17,26 @@ class lr_convert():
         warmup = LinearLR(self.optimizer,
                         start_factor=1e-6/self.lr,
                         end_factor=1.0,
-                        total_iters=20 - self.start_epoch)
+                        total_iters=10 - self.start_epoch)
         return warmup
     def _plateau(self):
         plateau = ConstantLR(
                         self.optimizer,
                         factor=1.0,           
-                        total_iters=60 - max(self.start_epoch, 20)        
+                        total_iters=20 - max(self.start_epoch, 10)        
             )
         return plateau
     def _cosine(self):
         cosine = CosineAnnealingLR(
                         self.optimizer,
-                        T_max=90 - max(self.start_epoch, 60),
+                        T_max=40 - max(self.start_epoch, 20),
                         eta_min=1e-6)   
         return cosine
     def _plateau_low(self):
         plateau_low = ConstantLR(
                         self.optimizer,
                         factor=1e-6 / self.lr,  
-                        total_iters=self.num_epochs - max(self.start_epoch, 90)       
+                        total_iters=self.num_epochs - max(self.start_epoch, 40)       
         )
         return plateau_low
     def pop_up(self):

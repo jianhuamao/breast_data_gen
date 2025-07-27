@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 @dataclass
 class trainingConfig:
+    name: str = "train"
     model: str = "DDPM"
     dataset: object = None
     image_size: int = 64
