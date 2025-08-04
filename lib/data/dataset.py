@@ -29,10 +29,11 @@ class MRIDataset(Dataset):
             self.gt_norm = transforms.gt_norm
             self.mask_to_tensor = transforms.mask_to_tensor
             if 'train' in sequence_list_txt:
-                self.train_tf = transforms.train_transform
-                self.isTrain = True
-            else: 
-                self.isTrain = False
+                try:
+                    self.train_tf = transforms.train_transform
+                except:
+                    self.train_tf = None
+            else: self.train_tf = None
         self.image_path_list = []
         self.sequence_path = os.path.join(data_folder,sequence_list_txt)
         with open(self.sequence_path, 'r') as f:
@@ -55,7 +56,7 @@ class MRIDataset(Dataset):
         gt = np.array(gt) / 255.0
         mask = np.array(mask) / 255.0
         if self.transforms is not None:
-            if self.isTrain:
+            if self.train_tf is not None:
                 aug = self.train_tf(image=image, gt=gt, mask=mask)
                 image = aug['image']
                 gt = aug['gt']
@@ -64,9 +65,9 @@ class MRIDataset(Dataset):
             gt = self.gt_norm(image=gt)
             mask = self.mask_to_tensor(image=mask)
             return {
-                'image': image['image'],
-                'gt': gt['image'],
-                'mask': mask['image']
+                'image': image['image'].float(),
+                'gt': gt['image'].float(),
+                'mask': mask['image'].float()
             }
         else:
             image = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1)
@@ -107,14 +108,16 @@ class transform():
             A.HorizontalFlip(p=0.25),
             A.Rotate(limit=15, p=0.25)
         ], additional_targets={'gt': 'image', 'mask': 'mask'})
-        self.image_norm = A.Compose([
-            A.Normalize(mean=[0.0990], std=[0.1030], max_pixel_value=1.0),
-            A.ToTensorV2()
-            ])
-        self.gt_norm = A.Compose([
-            A.Normalize(mean=[0.1016], std=[0.1430], max_pixel_value=1.0),
-            A.ToTensorV2()
-            ])
+        # self.image_norm = A.Compose([
+        #     A.Normalize(mean=[0.0990], std=[0.1030], max_pixel_value=1.0),
+        #     A.ToTensorV2()
+        #     ])
+        # self.gt_norm = A.Compose([
+        #     A.Normalize(mean=[0.1016], std=[0.1430], max_pixel_value=1.0),
+        #     A.ToTensorV2()
+        #     ])
+        self.image_norm = A.ToTensorV2()
+        self.gt_norm = A.ToTensorV2()
         self.mask_to_tensor = A.ToTensorV2()
 
 if __name__ == '__main__':
@@ -127,8 +130,9 @@ if __name__ == '__main__':
     train_len = len(train_dataset)  
     print(train_len)  
     # encoder = ImageEncoder()
-    for data in train_loader:
+    for data in eval_loader:
         print('image:',data['image'].shape)
         print('gt',data['gt'].shape)
         print('mask',data['mask'].shape)
+        breakpoint()
     

@@ -21,11 +21,11 @@ def swanlab_img(swanlab, img_files, num_idx):
         img_list.append(img)
     return img_list
 
-def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swanlab=None, device='cuda'):
+def evaluate(config, model, epoch, eval_dataloader, image_encoder, noise_scheduler, swanlab=None, device='cuda'):
     noise_scheduler.set_timesteps(50) 
     model = model.to(device)
     image_encoder = image_encoder.to(device).eval()
-    folder = "./output_without_transform"
+    folder = f"./output/{config.name}"
     path_list = ['generate', 'image', 'gt', 'mask']
     path_list = [os.path.join(folder, name) for name in path_list]
     all_path = path_gen(path_list=path_list, add_name=f'epoch{epoch}')
@@ -40,7 +40,10 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swan
     psnr_log = train_log('psnr')
     ssim_log = train_log('ssim')
     num_idx = 1
-    num_loop = 64
+    if config.isDebug:
+        num_loop = 8
+    else:
+        num_loop = 64
     if swanlab is not None:
         gen_list, image_list, gt_list, mask_list = [],[],[],[]
     with torch.no_grad():
@@ -120,4 +123,9 @@ def evaluate(model, epoch, eval_dataloader, image_encoder, noise_scheduler, swan
             'image': image_list,
             'mask': mask_list
         })
-
+    #upload baidu pan
+    if not config.isDebug: 
+        try:
+            os.system(f'sh upload.sh "{folder}" "breast_output/{config.name}"')
+        except:
+            pass

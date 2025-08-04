@@ -22,6 +22,7 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
         progress_bar.set_description(f"Epoch {epoch}")
         
         model.train()
+        print(config.isDebug) 
         train_time_0 = time.time()
         for data in train_dataloader:
             image = data['image'].to(device)
@@ -56,8 +57,9 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
                      })
 
         scheduler.step()
-        # if epoch == 0:
-        if (epoch+1) % 20 == 0 and epoch != 0:
+
+        should_eval = config.isDebug or ((epoch + 1) % 20 == 0 and epoch != 0)
+        if should_eval:
             model.eval()
             # pipeline = diffusers.DDPMPipeline(unet=model.modules, scheduler=noise_scheduler)
             torch.save({
@@ -68,6 +70,6 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
                 'loss': loss.item()
             }, f'./ckpt/{config.name}_epoch_{epoch+1}.pth')
             eval_time_0 = time.time()
-            evaluate(model, epoch+1, eval_dataloader, image_encoder, noise_scheduler, swanlab, device=device)
+            evaluate(config, model, epoch+1, eval_dataloader, image_encoder, noise_scheduler, swanlab, device=device)
             eval_time_1 = time.time()
             swanlab.log({'eval_time': eval_time_1 - eval_time_0})

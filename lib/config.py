@@ -17,3 +17,4 @@ class trainingConfig:
     num_train_timesteps: int = 1000
     start_epoch: int = 0
     pretrain_model_path: str = None
+    isDebug: bool = False

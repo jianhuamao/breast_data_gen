@@ -1,0 +1,3 @@
+LOCAL_PATH=$1
+REMOTE_PATH=$2
+bypy upload "$LOCAL_PATH" "$REMOTE_PATH"

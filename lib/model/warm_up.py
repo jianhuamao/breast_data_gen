@@ -43,7 +43,7 @@ class lr_convert():
         schedulers_name = ['_warm_up', '_plateau', '_cosine', '_plateau_low']
         added_milestones = sorted(self.milestones + [self.start_epoch])
         idx = added_milestones.index(self.start_epoch)
-        self.milestones[idx:]
+        self.milestones[:idx] = []
         return schedulers_name[idx:]
 
     def get_schedulers(self):

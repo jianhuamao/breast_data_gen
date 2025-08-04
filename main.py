@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument('--num_train_timesteps', type=int, default= 1000)
     parser.add_argument('--start_epoch', type=int, default=0)
     parser.add_argument('--pretrain_model_path', type=str, default= None)
+    parser.add_argument('--isDebug', type=bool, default= False)
     args = parser.parse_args()
     return args
 
@@ -52,13 +53,16 @@ def main():
         num_sampler = args.num_sampler,
         num_train_timesteps = args.num_train_timesteps,
         start_epoch = args.start_epoch,
-        pretrain_model_path = args.pretrain_model_path
+        pretrain_model_path = args.pretrain_model_path,
+        isDebug = args.isDebug
         )
+    if config.isDebug:
+        project = 'test'
+    else:
+        project = 'breast_data_gen'
     swanlab.init(
-    # 设置项目名
-    project="breast_data_gen",
-    
-    # 设置超参数
+    project=project,
+    description=config.name,
     config={
         "learning_rate": config.lr,
         "architecture": "unet",
@@ -67,8 +71,7 @@ def main():
     }
     )
     #load data
-    # transforms = transform()
-    transforms = None
+    transforms = transform()
     train_dataset = MRIDataset(config.data_folder, "train_list.txt", transforms=transforms)
     eval_dataset = MRIDataset(config.data_folder, 'eval_list.txt', transforms=transforms)
     # train_sampler = RandomSampler(train_dataset, replacement=True, num_samples=5000)
@@ -76,7 +79,7 @@ def main():
     eval_dataloader = DataLoader(eval_dataset, batch_size=config.eval_batch_size, num_workers=4, shuffle=False)
     unet = diffusers.UNet2DModel(
         sample_size=256,  # the target image resolution
-        in_channels=6,  # the number of input channels, 3 for RGB images
+        in_channels=config.in_channels,  # the number of input channels, 3 for RGB images
         out_channels=3,  # the number of output channels
         layers_per_block=2,  # how many ResNet layers to use per UNet block
         block_out_channels=(128, 128, 256, 256, 512, 512),  # the number of output channes for each UNet block
