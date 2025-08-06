@@ -24,6 +24,7 @@ class MRIDataset(Dataset):
     def __init__(self, data_folder, sequence_list_txt, transforms=None):
         self.data_folder = data_folder
         self.transforms = transforms
+        self._should_reinit_norm = True
         if transforms is not None:
             self.image_norm = transforms.image_norm
             self.gt_norm = transforms.gt_norm
@@ -55,6 +56,8 @@ class MRIDataset(Dataset):
         image = np.array(image) / 255.0
         gt = np.array(gt) / 255.0
         mask = np.array(mask) / 255.0
+        if self._should_reinit_norm:
+            self.reinit_norm(image)
         if self.transforms is not None:
             if self.train_tf is not None:
                 aug = self.train_tf(image=image, gt=gt, mask=mask)
@@ -101,24 +104,51 @@ class MRIDataset(Dataset):
         mask_path = image_path.replace('b800', 'segment')
         mask_path = mask_path.replace('_segment', '')
         return self.get_sequnence_frame(image_path, t1c_path, mask_sequence_path=mask_path)
-    
+    def reinit_norm(self, img):
+        self.transforms.reinit_norm(img)
+        self.image_norm = self.transforms.image_norm
+        self.gt_norm = self.transforms.gt_norm
+        self._should_reinit_norm = False
+
+
 class transform():
+    '''
+    default norm_size = (64, 64, 1)
+    '''
     def __init__(self):
+        self.img_dim = 3
         self.train_transform = A.Compose([
             A.HorizontalFlip(p=0.25),
             A.Rotate(limit=15, p=0.25)
         ], additional_targets={'gt': 'image', 'mask': 'mask'})
-        # self.image_norm = A.Compose([
-        #     A.Normalize(mean=[0.0990], std=[0.1030], max_pixel_value=1.0),
-        #     A.ToTensorV2()
-        #     ])
-        # self.gt_norm = A.Compose([
-        #     A.Normalize(mean=[0.1016], std=[0.1430], max_pixel_value=1.0),
-        #     A.ToTensorV2()
-        #     ])
+        self.image_norm = A.Compose([
+            A.Normalize(mean=[0.5], std=[0.5], max_pixel_value=1.0),
+            A.ToTensorV2()
+            ])
+        self.gt_norm = A.Compose([
+            A.Normalize(mean=[0.5], std=[0.5], max_pixel_value=1.0),
+            A.ToTensorV2()
+            ])
         self.image_norm = A.ToTensorV2()
         self.gt_norm = A.ToTensorV2()
         self.mask_to_tensor = A.ToTensorV2()
+    def get_dimension(self, img):
+        dim = img.shape[-1]
+        return dim
+        
+    def reinit_norm(self, img):
+        dim = self.get_dimension(img)
+        if dim != 1:
+            self.image_norm = A.Compose([
+                A.Normalize(mean=[0.5]*dim, std=[0.5]*dim, max_pixel_value=1.0),
+                A.ToTensorV2()
+                ])
+            self.gt_norm = A.Compose([
+                A.Normalize(mean=[0.5]*dim, std=[0.5]*dim, max_pixel_value=1.0),
+                A.ToTensorV2()
+                ])
+            print('12')
+        else: pass
 
 if __name__ == '__main__':
     transform = transform()

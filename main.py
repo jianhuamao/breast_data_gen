@@ -9,7 +9,7 @@ import diffusers
 from lib.model.encoder import ImageEncoder
 from lib.model.UnetWithSigmoid import UNetWithSigmoid
 import matplotlib.pyplot as plt
-from train import train_loop
+from lib.train.train import train_loop
 from lib.data.train_sampler import trainSampler
 from log.log import train_log
 from lib.utils.load_model import load_dict
@@ -18,6 +18,7 @@ from lib.model.warm_up import lr_convert
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='train')
+    parser.add_argument('--device', type=str, default='0')
     parser.add_argument('--train_batch_size', type=int, default=1)
     parser.add_argument('--eval_batch_size', type=int, default=1)
     parser.add_argument('--image_size', type=int, default=64)
@@ -54,7 +55,8 @@ def main():
         num_train_timesteps = args.num_train_timesteps,
         start_epoch = args.start_epoch,
         pretrain_model_path = args.pretrain_model_path,
-        isDebug = args.isDebug
+        isDebug = args.isDebug,
+        device = args.device
         )
     if config.isDebug:
         project = 'test'
@@ -67,7 +69,8 @@ def main():
         "learning_rate": config.lr,
         "architecture": "unet",
         "dataset": "t1c",
-        "epochs": 500
+        "epochs": 500,
+        'device': config.device
     }
     )
     #load data
@@ -77,7 +80,7 @@ def main():
     # train_sampler = RandomSampler(train_dataset, replacement=True, num_samples=5000)
     train_dataloader = DataLoader(train_dataset, batch_size=config.train_batch_size, num_workers=4, shuffle=True)
     eval_dataloader = DataLoader(eval_dataset, batch_size=config.eval_batch_size, num_workers=4, shuffle=False)
-    unet = diffusers.UNet2DModel(
+    unet = diffusers.UNet2DConditionModel(
         sample_size=256,  # the target image resolution
         in_channels=config.in_channels,  # the number of input channels, 3 for RGB images
         out_channels=3,  # the number of output channels

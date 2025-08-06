@@ -18,3 +18,4 @@ class trainingConfig:
     start_epoch: int = 0
     pretrain_model_path: str = None
     isDebug: bool = False
+    device: str = "0"
