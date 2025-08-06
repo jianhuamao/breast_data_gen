@@ -21,10 +21,11 @@ def swanlab_img(swanlab, img_files, num_idx):
         img_list.append(img)
     return img_list
 
-def evaluate(config, model, epoch, eval_dataloader, image_encoder, noise_scheduler, swanlab=None, device='cuda'):
+def evaluate(config, model, epoch, eval_dataloader, hidden_states_encoder, noise_scheduler, swanlab=None, device='cuda'):
     noise_scheduler.set_timesteps(50) 
     model = model.to(device)
-    image_encoder = image_encoder.to(device).eval()
+    if hidden_states_encoder is not None:
+        hidden_states_encoder = hidden_states_encoder.to(device).eval()
     folder = f"./output/{config.name}"
     path_list = ['generate', 'image', 'gt', 'mask']
     path_list = [os.path.join(folder, name) for name in path_list]
@@ -50,6 +51,7 @@ def evaluate(config, model, epoch, eval_dataloader, image_encoder, noise_schedul
         for data in eval_dataloader:
             image = data['image'].to(device) 
             gt = data['gt'].to(device)
+            mask = data['mask'].to(device)
             cond = image
             latent = torch.rand_like(gt).to(device)
             for t in noise_scheduler.timesteps:
@@ -57,7 +59,11 @@ def evaluate(config, model, epoch, eval_dataloader, image_encoder, noise_schedul
                 print(t.item())
                 # generate images 
                 x_in = torch.cat([latent, cond], dim=1)
-                pre_noise = model(x_in, t.expand(latent.shape[0]), return_dict=False)[0] #if in_put = [gt, image], model(latent, ...) latent change to x_in
+                if hidden_states_encoder is not None:
+                    latent_mask = hidden_states_encoder(model, mask)
+                    pre_noise = model(x_in, t.expand(latent.shape[0], encoder_hidden_states=latent_mask), return_dict=False)[0] #if in_put = [gt, image], model(latent, ...) latent change to x_in
+                else:
+                    pre_noise = model(x_in, t.expand(latent.shape[0]), return_dict=False)[0]
                 latent = noise_scheduler.step(pre_noise, t, latent).prev_sample  
             # generated_image = torch.clamp(latent, 0, 1)
             generated_image = latent

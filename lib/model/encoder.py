@@ -3,6 +3,7 @@ from PIL import Image
 from diffusers import AutoencoderKL
 import torch.nn as nn
 import numpy as np
+from diffusers.models.unets.unet_2d_blocks import  DownBlock2D
 # encoder by vae
 # class ImageEncoder(nn.Module):
 #     def __init__(self):
@@ -19,23 +20,32 @@ import numpy as np
 #         return latent_sample 
 
 
-class ImageEncoder(nn.Module):
+class hidden_Encoder(nn.Module):
     '''
     encode by projection
     '''
     def __init__(self, patch_size=8, embed_dim=1280):
         super().__init__()
-        self.ps = patch_size
-        self.proj = nn.Linear(3*patch_size*patch_size, embed_dim)
+        self.conv_in = torch.nn.Conv2d(1, 128, kernel_size=3, padding=1)
+        self.db = nn.ModuleList([])
+        db_list = [128, 256, 512, 768, 1280]
+        for i, num in enumerate(db_list):
+            self.db.append(DownBlock2D(
+            num_layers=1,
+            in_channels=num,
+            out_channels=db_list[i+1] if i < len(db_list)-1 else 1280,
+            temb_channels=512))
 
-    def forward(self, x):                # x: [B,3,H,W]
-        B, C, H, W = x.shape
-        x = x.unfold(2, self.ps, self.ps).unfold(3, self.ps, self.ps)
-        x = x.permute(0,2,3,1,4,5).contiguous()  # [B, h, w, C, ps, ps]
-        x = x.view(B, -1, C*self.ps*self.ps)     # [B, N, C*ps²]
-        return self.proj(x) 
+    def forward(self, model, image):  
+            image = self.conv_in(image)
+            t_emb = model.get_time_embed(sample=image, timestep=1000)
+            emb = model.time_embedding(t_emb)
+            for dblock in self.db:
+                image, _ = dblock(image, emb)
+            return image.flatten(-2).transpose(1, 2) 
+
 if __name__ == '__main__':
-    model = ImageEncoder()
+    model = Encoder()
     image = torch.randn(16, 3, 64, 64).float()
     output = model(image)
     print(output.shape)

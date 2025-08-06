@@ -1,5 +1,5 @@
 import torch
-from lib.model.encoder import ImageEncoder
+from lib.model.encoder import hidden_Encoder
 from tqdm.auto import tqdm
 import numpy as np
 import torch.nn.functional as F
@@ -8,38 +8,27 @@ from lib.eval.eval import evaluate
 from diffusers import StableDiffusionInpaintPipeline
 from lib.utils.load_model import load_dict
 import time
-from diffusers.models.unets.unet_2d_blocks import  DownBlock2D
+
 def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_dataloader, eval_dataloader, swanlab, device='cuda'):
     global_step = 0
     start_epoch = config.start_epoch
-    image_encoder = ImageEncoder().to(device)
-    conv_in = torch.nn.Conv2d(1, 128, kernel_size=3, padding=1).to(device)
-    db = nn.ModuleList([])
-    db_list = [128, 256, 512, 768, 1280]
-    for i, num in enumerate(db_list):
-        db.append(DownBlock2D(
-        num_layers=1,
-        in_channels=num,
-        out_channels=db_list[i+1] if i < len(db_list)-1 else 1280,
-        temb_channels=512))
-    db.to(device)
+    if config.sd:
+        hidden_states_encoder = hidden_Encoder().to(device) 
+    else:
+        hidden_states_encoder = None
+
     for epoch in range(start_epoch, config.num_epochs):
         progress_bar = tqdm(total=len(train_dataloader))
         progress_bar.set_description(f"Epoch {epoch}")
         
         model.train()
-        print(config.isDebug) 
         train_time_0 = time.time()
         for data in train_dataloader:
             image = data['image'].to(device)
             gt = data['gt'].to(device)
             mask = data['mask'].to(device)
-            mask = conv_in(mask)
-            t_emb = model.get_time_embed(sample=mask, timestep=1000)
-            emb = model.time_embedding(t_emb)
-            for dblock in db:
-                mask, _ = dblock(mask, emb)
-            mask = mask.flatten(-2).transpose(1, 2)
+            if hidden_states_encoder is not None:
+                latent_mask = hidden_states_encoder(model, mask)
             cond = image
             # Sample noise to add to the images
             noise = torch.randn_like(gt)
@@ -51,7 +40,10 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
             noisy_gt = noise_scheduler.add_noise(gt, noise, timesteps)
             noisy_gt = torch.cat([noisy_gt, cond], dim=1)
             # Predict the noise residual
-            noise_pred = model(noisy_gt, timesteps, encoder_hidden_states=mask, return_dict=False)[0]
+            if hidden_states_encoder is not None :
+                noise_pred = model(noisy_gt, timesteps, encoder_hidden_states=latent_mask, return_dict=False)[0]
+            else:
+                noise_pred = model(noisy_gt, timesteps, return_dict=False)[0]
             loss = get_loss(noise_pred=noise_pred, noise=noise)
             loss.backward()
             swanlab.log({'loss': loss.item()})
@@ -70,7 +62,7 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
 
         scheduler.step()
 
-        should_eval = config.isDebug or ((epoch + 1) % 20 == 0 and epoch != 0)
+        should_eval = config.isDebug or ((epoch + 1) % 100 == 0 and epoch != 0)
         if should_eval:
             model.eval()
             # pipeline = diffusers.DDPMPipeline(unet=model.modules, scheduler=noise_scheduler)
@@ -82,7 +74,7 @@ def train_loop(config, model, noise_scheduler, optimizer, scheduler, train_datal
                 'loss': loss.item()
             }, f'./ckpt/{config.name}_epoch_{epoch+1}.pth')
             eval_time_0 = time.time()
-            evaluate(config, model, epoch+1, eval_dataloader, image_encoder, noise_scheduler, swanlab, device=device)
+            evaluate(config, model, epoch+1, hidden_states_encoder, eval_dataloader, noise_scheduler, swanlab, device=device)
             eval_time_1 = time.time()
             swanlab.log({'eval_time': eval_time_1 - eval_time_0})
     

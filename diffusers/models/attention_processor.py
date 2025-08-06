@@ -3297,7 +3297,6 @@ class AttnProcessor2_0:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
         key = attn.to_k(encoder_hidden_states)
-        print(encoder_hidden_states.shape)
         value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]

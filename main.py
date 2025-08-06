@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('--start_epoch', type=int, default=0)
     parser.add_argument('--pretrain_model_path', type=str, default= None)
     parser.add_argument('--isDebug', type=bool, default= False)
+    parser.add_argument('--sd', type=bool, default= False)
     args = parser.parse_args()
     return args
 
@@ -56,7 +57,8 @@ def main():
         start_epoch = args.start_epoch,
         pretrain_model_path = args.pretrain_model_path,
         isDebug = args.isDebug,
-        device = args.device
+        device = args.device,
+        sd = args.sd
         )
     if config.isDebug:
         project = 'test'
@@ -80,7 +82,7 @@ def main():
     # train_sampler = RandomSampler(train_dataset, replacement=True, num_samples=5000)
     train_dataloader = DataLoader(train_dataset, batch_size=config.train_batch_size, num_workers=4, shuffle=True)
     eval_dataloader = DataLoader(eval_dataset, batch_size=config.eval_batch_size, num_workers=4, shuffle=False)
-    unet = diffusers.UNet2DConditionModel(
+    unet = diffusers.UNet2DModel(
         sample_size=256,  # the target image resolution
         in_channels=config.in_channels,  # the number of input channels, 3 for RGB images
         out_channels=3,  # the number of output channels
