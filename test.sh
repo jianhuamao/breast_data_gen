@@ -1,0 +1,3 @@
+DEVICES=1
+TRAIN_MODEL='single'
+CUDA_VISIBLE_DEVICES=$DEVICES python3 test.py

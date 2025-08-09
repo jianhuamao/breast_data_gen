@@ -8,6 +8,7 @@ from skimage.metrics import structural_similarity as ssim
 from log.log import train_log
 from PIL import Image
 import cv2 as cv
+import einops
 def path_gen(path_list:list, add_name):
      return [os.path.join(dir_name, add_name) for dir_name in path_list]
 def is_path_exists(path_list:list):
@@ -22,8 +23,12 @@ def swanlab_img(swanlab, img_files, num_idx):
     return img_list
 
 def evaluate(config, model, epoch, eval_dataloader, hidden_states_encoder, noise_scheduler, swanlab=None, device='cuda'):
+    if isinstance(model, dict):
+        unet = model['unet']
+        text_prompt = model['text_prompt']
+        vae = model['vae']
     noise_scheduler.set_timesteps(50) 
-    model = model.to(device)
+    unet = unet.to(device)
     if hidden_states_encoder is not None:
         hidden_states_encoder = hidden_states_encoder.to(device).eval()
     folder = f"./output/{config.name}"
@@ -54,19 +59,29 @@ def evaluate(config, model, epoch, eval_dataloader, hidden_states_encoder, noise
             mask = data['mask'].to(device)
             cond = image
             latent = torch.rand_like(gt).to(device)
+            if vae is not None:
+                latent = vae.encode(latent).latent_dist.sample()
+                image = vae.encode(image).latent_dist.sample()
+                x_in = torch.cat([latent.unsqueeze(1), image.unsqueeze(1)], dim=1)
+                x_in = einops.rearrange(x_in, 'b l c h w -> (b l) c h w')
             for t in noise_scheduler.timesteps:
                 t = t.to(device)
                 print(t.item())
                 # generate images 
-                x_in = torch.cat([latent, cond], dim=1)
-                if hidden_states_encoder is not None:
-                    latent_mask = hidden_states_encoder(model, mask)
-                    pre_noise = model(x_in, t.expand(latent.shape[0], encoder_hidden_states=latent_mask), return_dict=False)[0] #if in_put = [gt, image], model(latent, ...) latent change to x_in
+                if text_prompt is not None:
+                    pre_noise = unet(x_in, t.expand(x_in.shape[0]), encoder_hidden_states=text_prompt, return_dict=False)[0] #if in_put = [gt, image], model(latent, ...) latent change to x_in
+                    x_in = noise_scheduler.step(pre_noise, t, x_in).prev_sample
                 else:
-                    pre_noise = model(x_in, t.expand(latent.shape[0]), return_dict=False)[0]
-                latent = noise_scheduler.step(pre_noise, t, latent).prev_sample  
+                    x_in = torch.cat([latent, cond], dim=1)
+                    pre_noise = unet(x_in, t.expand(latent.shape[0]), return_dict=False)[0]
+                    latent = noise_scheduler.step(pre_noise, t, latent).prev_sample  
             # generated_image = torch.clamp(latent, 0, 1)
-            generated_image = latent
+            if vae is not None:
+                latent = einops.rearrange(x_in, '(b l) c h w -> b l c h w', l = 2)
+                latent = latent[:, 0, :, :, :].squeeze()
+                generated_image = vae.decode(latent).sample
+            else:
+                generated_image = latent
             generated_image = torch.clamp(generated_image, -1, 1) * 0.5 + 0.5
             # convert to numpy
             generated_np = generated_image.detach().cpu().squeeze().numpy()

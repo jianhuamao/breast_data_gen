@@ -3,7 +3,7 @@ from dataclasses import dataclass
 @dataclass
 class trainingConfig:
     name: str = "train"
-    model: str = "DDPM"
+    model_name: str = 'unet'
     dataset: object = None
     image_size: int = 64
     train_batch_size: int = 16
@@ -19,3 +19,7 @@ class trainingConfig:
     pretrain_model_path: str = None
     isDebug: bool = False
     device: str = "0"
+    sd: bool =False
+    rank: int = 16
+    lora_path: str = None
+    train_text_encoder: bool = False

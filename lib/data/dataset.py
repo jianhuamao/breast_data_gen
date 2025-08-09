@@ -11,6 +11,7 @@ from torch.utils.data.dataloader import default_collate
 # from lib.utils.process import train_transform
 from torchvision import transforms
 import albumentations as A
+from torch.utils.data import Sampler
 def collate_dict(batch):
     images   = default_collate([item['image']   for item in batch])
     gts      = default_collate([item['gt']      for item in batch])
@@ -56,8 +57,8 @@ class MRIDataset(Dataset):
         image = np.array(image) / 255.0
         gt = np.array(gt) / 255.0
         mask = np.array(mask) / 255.0
-        if self._should_reinit_norm:
-            self.reinit_norm(image)
+        # if self._should_reinit_norm:
+        #     self.reinit_norm(image)
         if self.transforms is not None:
             if self.train_tf is not None:
                 aug = self.train_tf(image=image, gt=gt, mask=mask)
@@ -117,18 +118,18 @@ class transform():
     '''
     def __init__(self):
         self.img_dim = 3
-        self.train_transform = A.Compose([
-            A.HorizontalFlip(p=0.25),
-            A.Rotate(limit=15, p=0.25)
-        ], additional_targets={'gt': 'image', 'mask': 'mask'})
-        self.image_norm = A.Compose([
-            A.Normalize(mean=[0.5], std=[0.5], max_pixel_value=1.0),
-            A.ToTensorV2()
-            ])
-        self.gt_norm = A.Compose([
-            A.Normalize(mean=[0.5], std=[0.5], max_pixel_value=1.0),
-            A.ToTensorV2()
-            ])
+        # self.train_transform = A.Compose([
+        #     A.HorizontalFlip(p=0.25),
+        #     A.Rotate(limit=15, p=0.25)
+        # ], additional_targets={'gt': 'image', 'mask': 'mask'})
+        # self.image_norm = A.Compose([
+        #     A.Normalize(mean=[0.5], std=[0.5], max_pixel_value=1.0),
+        #     A.ToTensorV2()
+        #     ])
+        # self.gt_norm = A.Compose([
+        #     A.Normalize(mean=[0.5], std=[0.5], max_pixel_value=1.0),
+        #     A.ToTensorV2()
+        #     ])
         self.image_norm = A.ToTensorV2()
         self.gt_norm = A.ToTensorV2()
         self.mask_to_tensor = A.ToTensorV2()
@@ -147,22 +148,32 @@ class transform():
                 A.Normalize(mean=[0.5]*dim, std=[0.5]*dim, max_pixel_value=1.0),
                 A.ToTensorV2()
                 ])
-            print('12')
         else: pass
+class FixedBatchSampler(Sampler):
+    def __init__(self, dataset, batch_size, num_batches):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.num_batches = num_batches
 
+    def __iter__(self):
+        indices = list(range(len(self.dataset)))
+        indices = indices[:self.num_batches * self.batch_size]
+        batch_indices = [indices[i:i + self.batch_size] for i in range(0, len(indices), self.batch_size)]
+        for batch in batch_indices:
+            yield batch
+
+    def __len__(self):
+        return self.num_batches
+    
 if __name__ == '__main__':
-    transform = transform()
+    transform = None
     data_folder = './data'
     train_dataset = MRIDataset(data_folder, "train_list.txt", transforms=transform)
+    sampler = FixedBatchSampler(train_dataset, batch_size=8, num_batches=100)
     eval_dataset = MRIDataset(data_folder=data_folder, sequence_list_txt='eval_list.txt', transforms=transform)
-    train_loader = DataLoader(train_dataset, batch_size=8, num_workers=4, shuffle=True)
-    eval_loader = DataLoader(eval_dataset, batch_size=8, num_workers=4,shuffle=False)
-    train_len = len(train_dataset)  
+    train_loader = DataLoader(train_dataset, num_workers=4, batch_sampler=sampler)
+    eval_loader = DataLoader(eval_dataset, batch_size=8, num_workers=4,shuffle=False, drop_last=True)
+    train_len = len(train_loader)  
     print(train_len)  
-    # encoder = ImageEncoder()
-    for data in eval_loader:
-        print('image:',data['image'].shape)
-        print('gt',data['gt'].shape)
-        print('mask',data['mask'].shape)
-        breakpoint()
+
     
